@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrámiteClaro SEPREC — Asistente IA & Auditoría HITS</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: radial-gradient(circle at 80% 10%, #ede9fe 0%, #f8fafc 45%, #f3e8ff 100%);
+      --card: rgba(255, 255, 255, 0.88);
+      --primary: #7c3aed;
+      --primary-light: #ede9fe;
+      --primary-dark: #5b21b6;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --red: #ef4444;
+      --text: #1e1b4b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 12px 32px -8px rgba(124, 58, 237, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    body {
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---------------- NAVBAR SUPERIOR ---------------- */
+    .navbar {
+      max-width: 1200px;
+      width: 100%;
+      margin: 16px auto 0;
+      padding: 12px 22px;
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      color: white; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(124,58,237,0.3);
+    }
+    .brand-name { font-weight: 800; font-size: 1.15rem; color: var(--primary-dark); letter-spacing: -0.02em; }
+    .brand-sub { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+
+    .view-switcher {
+      display: flex;
+      background: #f1f5f9;
+      padding: 5px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .view-btn {
+      border: none; background: transparent; color: var(--muted);
+      padding: 8px 18px; border-radius: 999px; font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; transition: all 0.25s ease; display: flex; align-items: center; gap: 6px;
+    }
+    .view-btn.active {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
+    }
+
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .api-pill {
+      display: flex; align-items: center; gap: 6px; background: white;
+      padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.78rem;
+    }
+    .api-pill input { border: none; outline: none; width: 155px; font-size: 0.78rem; color: var(--text); }
+    .dot-status { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); }
+    .dot-status.offline { background: var(--red); }
+
+    .voice-chip {
+      background: var(--primary-light); color: var(--primary-dark); border: none;
+      padding: 7px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    }
+    .voice-chip.muted { background: #f1f5f9; color: var(--muted); }
+
+    /* ---------------- CONTENEDOR PRINCIPAL ---------------- */
+    .main-wrap {
+      max-width: 1200px;
+      width: 100%;
+      margin: 18px auto 24px;
+      padding: 0 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view-panel { display: none; flex: 1; }
+    .view-panel.active { display: flex; flex-direction: column; }
+
+    /* ---------------- VISTA 1: MODO BOT ---------------- */
+    .bot-shell {
+      background: var(--card);
+      backdrop-filter: blur(14px);
+      border: 1px solid white;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 640px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .welcome-hero {
+      text-align: center;
+      padding: 18px 10px 10px;
+      transition: all 0.3s ease;
+    }
+    .welcome-hero.compact {
+      padding: 4px 0 12px; display: flex; align-items: center; justify-content: center;
+      gap: 14px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+
+    .orb-avatar {
+      width: 84px; height: 84px; margin: 0 auto 14px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #e9d5ff, #a855f7 55%, #5b21b6 100%);
+      box-shadow: 0 12px 28px rgba(139, 92, 246, 0.45), inset 0 -6px 14px rgba(255,255,255,0.45);
+      position: relative;
+      animation: floatOrb 4s ease-in-out infinite;
+    }
+    .welcome-hero.compact .orb-avatar { width: 42px; height: 42px; margin: 0; }
+    .orb-avatar.speaking { animation: speakPulse 0.8s ease-in-out infinite; }
+    @keyframes floatOrb { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes speakPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); box-shadow: 0 0 28px rgba(139,92,246,0.75); } }
+
+    .welcome-title { font-size: 1.55rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .welcome-hero.compact .welcome-title { font-size: 1.05rem; }
+    .welcome-sub { font-size: 0.9rem; color: var(--muted); max-width: 540px; margin: 6px auto 16px; }
+    .welcome-hero.compact .welcome-sub { display: none; }
+
+    .pill-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
+    .welcome-hero.compact .pill-row { display: none; }
+    .topic-pill {
+      background: white; border: 1px solid var(--border); color: var(--text);
+      padding: 8px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .topic-pill:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+
+    .workspace-box {
+      background: white; border: 1px solid var(--border); border-radius: 18px;
+      padding: 14px 16px; text-align: left; margin-bottom: 14px;
+    }
+    .welcome-hero.compact .workspace-box { display: none; }
+    .ws-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+    .ws-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 10px; border-radius: 12px; transition: 0.15s; cursor: pointer;
+    }
+    .ws-item:hover { background: #f8fafc; }
+    .ws-left { display: flex; align-items: center; gap: 10px; }
+    .ws-icon {
+      width: 32px; height: 32px; border-radius: 9px; background: var(--primary-light);
+      color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+    }
+    .ws-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .ws-badge { font-size: 0.74rem; color: var(--muted); font-weight: 600; }
+
+    .chat-feed {
+      flex: 1; overflow-y: auto; padding: 10px 4px; display: flex; flex-direction: column; gap: 12px;
+      max-height: 390px;
+    }
+    .msg { max-width: 84%; padding: 12px 16px; border-radius: 18px; font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white; border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 12px rgba(124,58,237,0.2);
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: white; border: 1px solid var(--border); color: var(--text);
+      border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .msg-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid #f1f5f9; font-size: 0.74rem; color: var(--muted); }
+    .btn-listen { background: var(--primary-light); color: var(--primary-dark); border: none; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; cursor: pointer; }
+    .sources-list { margin-top: 6px; font-size: 0.76rem; }
+    .sources-list a { color: var(--primary); text-decoration: none; display: block; margin-top: 2px; font-weight: 500; }
+    .sources-list a:hover { text-decoration: underline; }
+
+    .composer {
+      margin-top: auto;
+      background: white;
+      border: 1.5px solid #ddd6fe;
+      border-radius: 999px;
+      padding: 6px 8px 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(124,58,237,0.08);
+    }
+    .composer input {
+      flex: 1; border: none; outline: none; font-size: 0.92rem; background: transparent; color: var(--text);
+    }
+    .btn-mic {
+      width: 38px; height: 38px; border-radius: 50%; border: none;
+      background: var(--primary-light); color: var(--primary); font-size: 1.05rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+    }
+    .btn-mic.recording { background: var(--red); color: white; animation: speakPulse 1s infinite; }
+    .btn-send {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white; border: none; padding: 9px 18px; border-radius: 999px;
+      font-weight: 600; font-size: 0.86rem; cursor: pointer;
+    }
+    .btn-send:disabled { opacity: 0.5; }
+    .voice-hint { text-align: center; font-size: 0.76rem; color: var(--primary); margin-top: 6px; min-height: 16px; font-weight: 600; }
+
+    /* ---------------- VISTA 2: MODO AUDITOR & GRAFO HITS ---------------- */
+    .auditor-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 18px;
+    }
+    @media (max-width: 960px) { .auditor-grid { grid-template-columns: 1fr; } }
+
+    .panel-card {
+      background: white; border: 1px solid var(--border); border-radius: 22px;
+      padding: 18px; box-shadow: var(--shadow);
+    }
+    .panel-card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+    .kpis-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .kpi-box { background: #f8fafc; padding: 12px; border-radius: 14px; border: 1px solid var(--border); }
+    .kpi-num { font-size: 1.35rem; font-weight: 800; color: var(--primary); }
+    .kpi-lbl { font-size: 0.74rem; color: var(--muted); font-weight: 600; }
+
+    .graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .filter-chip {
+      padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border);
+      background: #f8fafc; font-size: 0.76rem; font-weight: 600; cursor: pointer; color: var(--text);
+    }
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .search-node { flex: 1; min-width: 160px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 0.8rem; }
+
+    #network-canvas {
+      width: 100%; height: 440px; background: #faf8ff;
+      border-radius: 16px; border: 1px solid #ede9fe;
+    }
+    .legend { display: flex; gap: 14px; font-size: 0.75rem; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+    .legend span { display: flex; align-items: center; gap: 5px; }
+    .dot-leg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+    .rank-list { max-height: 235px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .rank-item {
+      padding: 9px 12px; border-radius: 12px; background: #f8fafc;
+      border-left: 3px solid var(--amber); font-size: 0.8rem;
+    }
+    .rank-item.hub { border-left-color: var(--primary); }
+    .rank-item a { font-weight: 700; color: var(--text); text-decoration: none; display: block; margin-bottom: 2px; }
+    .rank-item a:hover { color: var(--primary); }
+    .rank-meta { font-size: 0.72rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR -->
+  <nav class="navbar">
+    <div class="brand">
+      <div class="brand-icon">TC</div>
+      <div>
+        <div class="brand-name">TrámiteClaro SEPREC</div>
+        <div class="brand-sub">Bolivia • Auditoría HITS & Asistente Ciudadano</div>
+      </div>
+    </div>
+
+    <div class="view-switcher">
+      <button class="view-btn active" id="tab-bot" onclick="cambiarVista('bot')">💬 Modo Bot</button>
+      <button class="view-btn" id="tab-auditor" onclick="cambiarVista('auditor')">🕸️ Modo Auditor & Grafo</button>
+    </div>
+
+    <div class="nav-actions">
+      <button class="voice-chip" id="btn-tts-global" onclick="toggleVoz()">🔊 Voz Activa</button>
+      <div class="api-pill">
+        <span class="dot-status" id="conn-dot"></span>
+        <input type="text" id="api-url" value="http://127.0.0.1:8000" title="URL de tu Backend FastAPI" />
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-wrap">
+
+    <!-- ==================== VISTA 1: MODO BOT ==================== -->
+    <section class="view-panel active" id="view-bot">
+      <div class="bot-shell">
+        <div class="welcome-hero" id="welcome-hero">
+          <div class="orb-avatar" id="orb-avatar"></div>
+          <div>
+            <h1 class="welcome-title">Hola, soy TrámiteClaro SEPREC</h1>
+            <p class="welcome-sub">¿En qué puedo ayudarte hoy? Tengo toda la información base extraída y auditada de los trámites en SEPREC Bolivia.</p>
+          </div>
+
+          <div class="pill-row">
+            <button class="topic-pill" onclick="consultaRapida('¿Qué trámites tiene SEPREC?')">📋 ¿Qué trámites tiene SEPREC?</button>
+            <button class="topic-pill" onclick="consultaRapida('¿De qué trata el Trámite 1 y qué requisitos pide?')">🏢 Trámite 1 (Inscripción)</button>
+            <button class="topic-pill" onclick="consultaRapida('¿Cómo realizo la renovación de matrícula de comercio?')">🔄 Renovación de Matrícula</button>
+          </div>
+
+          <div class="workspace-box">
+            <div class="ws-header">
+              <span>Documentos Oficiales Principales (Top Authorities HITS)</span>
+              <span id="ws-count">Cargando...</span>
+            </div>
+            <div id="ws-top-list"></div>
+          </div>
+        </div>
+
+        <div class="chat-feed" id="chat-feed"></div>
+
+        <div class="composer">
+          <button class="btn-mic" id="btn-mic" onclick="iniciarDictado()" title="Hablar por micrófono">🎙️</button>
+          <input type="text" id="chat-input" placeholder="Pregúntame sobre trámites, requisitos o matrícula..." onkeydown="if(event.key==='Enter') enviarMensaje()" />
+          <button class="btn-send" id="btn-send" onclick="enviarMensaje()">Enviar</button>
+        </div>
+        <div class="voice-hint" id="voice-status"></div>
+      </div>
+    </section>
+
+    <!-- ==================== VISTA 2: MODO AUDITOR & GRAFO ==================== -->
+    <section class="view-panel" id="view-auditor">
+      <div class="kpis-row">
+        <div class="kpi-box"><div class="kpi-num" id="kpi-nodos">-</div><div class="kpi-lbl">Páginas / Subpáginas</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-aristas">-</div><div class="kpi-lbl">Enlaces Dirigidos</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-salud" style="color:var(--emerald)">-</div><div class="kpi-lbl">Índice Salud Web</div></div>
+        <div class="kpi-box"><div class="kpi-num" id="kpi-rotos" style="color:var(--red)">-</div><div class="kpi-lbl">Enlaces Rotos (404)</div></div>
+      </div>
+
+      <div class="auditor-grid">
+        <div class="panel-card">
+          <h2>
+            <span>🕸️ Mapa Interactivo de Páginas, Hubs y Authorities</span>
+            <button class="voice-chip" onclick="dibujarGrafo()">Centrar Grafo</button>
+          </h2>
+
+          <div class="graph-toolbar">
+            <button class="filter-chip active" onclick="filtrarGrafo('todos', this)">Todos los nodos</button>
+            <button class="filter-chip" onclick="filtrarGrafo('hubs', this)">Solo Hubs (Guías)</button>
+            <button class="filter-chip" onclick="filtrarGrafo('auths', this)">Solo Authorities (Trámites)</button>
+            <input type="text" class="search-node" id="node-search" placeholder="Filtrar nodo por nombre o URL..." oninput="buscarEnGrafo(this.value)" />
+          </div>
+
+          <div id="network-canvas"></div>
+          <div class="legend">
+            <span><i class="dot-leg" style="background:#7c3aed"></i> Hub (Directorio / Índice)</span>
+            <span><i class="dot-leg" style="background:#f59e0b"></i> Authority (Trámite / Fuente Oficial)</span>
+            <span><i class="dot-leg" style="background:#3b82f6"></i> Subpágina / Nota Informativa</span>
+            <span><i class="dot-leg" style="background:#ef4444"></i> Enlace Caído (404)</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="panel-card">
+            <h2>🏆 Top Authorities (Fuentes Oficiales)</h2>
+            <div class="rank-list" id="rank-auths">Cargando...</div>
+          </div>
+
+          <div class="panel-card">
+            <h2>🧭 Top Hubs (Concentradores)</h2>
+            <div class="rank-list" id="rank-hubs">Cargando...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+<script>
+  let vozActiva = true;
+  let reconocimiento = null;
+  let datosGrafoGlobal = { nodos: [], aristas: [] };
+  let networkInstance = null;
+  let filtroActual = "todos";
+
+  function getApi() {
+    return document.getElementById("api-url").value.trim().replace(/\/+$/, "");
+  }
+
+  function cambiarVista(vista) {
+    document.getElementById("view-bot").classList.toggle("active", vista === "bot");
+    document.getElementById("view-auditor").classList.toggle("active", vista === "auditor");
+    document.getElementById("tab-bot").classList.toggle("active", vista === "bot");
+    document.getElementById("tab-auditor").classList.toggle("active", vista === "auditor");
+
+    if (vista === "auditor") {
+      setTimeout(() => dibujarGrafo(), 100);
+    }
+  }
+
+  // -------------------- DICCIONARIO LIMPIADOR DE SÍMBOLOS PARA VOZ --------------------
+  const DICCIONARIO_VOZ = [
+    { regex: /https?:\/\/[^\s)]+/g, reemplazo: "el enlace oficial disponible en pantalla" },
+    { regex: /[*#_`~>|•▪●◆■□►▶✓✔✕✖]/g, reemplazo: " " },
+    { regex: /\s+[-–—]+\s+/g, reemplazo: ", " },
+    { regex: /^[-–—]+\s*/gm, reemplazo: "" },
+    { regex: /\b\d+\s*[-–—]\s*/g, reemplazo: " " },
+    { regex: /\(([^)]*)\)/g, reemplazo: ", $1, " },
+    { regex: /\bN[°ºo]\.?\s*/gi, reemplazo: "número " },
+    { regex: /\bArt\.?\s*/gi, reemplazo: "artículo " },
+    { regex: /\bBs\.?\s*/g, reemplazo: "bolivianos " },
+    { regex: /[\/\\|]/g, reemplazo: " o " },
+    { regex: /\s{2,}/g, reemplazo: " " }
+  ];
+
+  function limpiarTextoParaVoz(texto) {
+    let limpio = texto;
+    for (const regla of DICCIONARIO_VOZ) {
+      limpio = limpio.replace(regla.regex, regla.reemplazo);
+    }
+    return limpio.trim();
+  }
+
+  function toggleVoz() {
+    vozActiva = !vozActiva;
+    const btn = document.getElementById("btn-tts-global");
+    btn.textContent = vozActiva ? "🔊 Voz Activa" : "🔇 Voz Silenciada";
+    btn.classList.toggle("muted", !vozActiva);
+    if (!vozActiva && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      document.getElementById("orb-avatar").classList.remove("speaking");
+    }
+  }
+
+  function leerEnVozAlta(texto) {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const textoNatural = limpiarTextoParaVoz(texto);
+    const utter = new SpeechSynthesisUtterance(textoNatural);
+    utter.lang = "es-ES";
+    utter.rate = 1.04;
+
+    const orb = document.getElementById("orb-avatar");
+    utter.onstart = () => orb.classList.add("speaking");
+    utter.onend = () => orb.classList.remove("speaking");
+    utter.onerror = () => orb.classList.remove("speaking");
+
+    window.speechSynthesis.speak(utter);
+  }
+
+  // -------------------- RECONOCIMIENTO DE VOZ (MICRÓFONO) --------------------
+  function iniciarDictado() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const statusEl = document.getElementById("voice-status");
+    const micBtn = document.getElementById("btn-mic");
+
+    if (!SpeechRec) {
+      statusEl.textContent = "⚠️ Usa Google Chrome o Microsoft Edge para dictar por voz.";
+      return;
+    }
+
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    if (reconocimiento) {
+      try { reconocimiento.stop(); } catch (e) {}
+      reconocimiento = null;
+      micBtn.classList.remove("recording");
+      statusEl.textContent = "";
+      return;
+    }
+
+    try {
+      const rec = new SpeechRec();
+      rec.lang = "es-ES";
+      rec.continuous = false;
+      rec.interimResults = true;
+      reconocimiento = rec;
+
+      let textoFinal = "";
+      rec.onstart = () => {
+        micBtn.classList.add("recording");
+        statusEl.textContent = "🎙️ Escuchando... Haz tu consulta sobre SEPREC.";
+      };
+
+      rec.onresult = (event) => {
+        let parcial = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) textoFinal += t;
+          else parcial += t;
+        }
+        document.getElementById("chat-input").value = textoFinal || parcial;
+      };
+
+      rec.onerror = (event) => {
+        micBtn.classList.remove("recording");
+        reconocimiento = null;
+        statusEl.textContent = event.error === "network"
+          ? "⚠️ Abre la página con http://localhost:5500 en Chrome o Edge para usar el micrófono."
+          : "⚠️ Error de micrófono: " + event.error;
+      };
+
+      rec.onend = () => {
+        micBtn.classList.remove("recording");
+        reconocimiento = null;
+        statusEl.textContent = "";
+        const q = document.getElementById("chat-input").value.trim();
+        if (q.length > 1) enviarMensaje();
+      };
+
+      rec.start();
+    } catch (e) {
+      micBtn.classList.remove("recording");
+      statusEl.textContent = "⚠️ No se pudo iniciar el micrófono.";
+    }
+  }
+
+  // -------------------- CHATBOT --------------------
+  function consultaRapida(pregunta) {
+    document.getElementById("chat-input").value = pregunta;
+    enviarMensaje();
+  }
+
+  function agregarBurbuja(rol, texto, fuentes = []) {
+    document.getElementById("welcome-hero").classList.add("compact");
+
+    const feed = document.getElementById("chat-feed");
+    const div = document.createElement("div");
+    div.className = "msg " + rol;
+    div.innerHTML = texto.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    if (rol === "bot") {
+      if (fuentes && fuentes.length > 0) {
+        const sDiv = document.createElement("div");
+        sDiv.className = "sources-list";
+        sDiv.innerHTML = "<strong style='color:#64748b;'>Fuentes oficiales SEPREC:</strong>" +
+          fuentes.slice(0, 3).map(f => `<a href="${f.url}" target="_blank">↗ ${f.titulo}</a>`).join("");
+        div.appendChild(sDiv);
+      }
+
+      const footer = document.createElement("div");
+      footer.className = "msg-footer";
+      footer.innerHTML = `<span>Respaldado por HITS + Groq</span>`;
+      const btn = document.createElement("button");
+      btn.className = "btn-listen";
+      btn.textContent = "🔊 Escuchar";
+      btn.onclick = () => leerEnVozAlta(texto);
+      footer.appendChild(btn);
+      div.appendChild(footer);
+    }
+
+    feed.appendChild(div);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  async function enviarMensaje() {
+    const input = document.getElementById("chat-input");
+    const pregunta = input.value.trim();
+    if (!pregunta) return;
+
+    input.value = "";
+    agregarBurbuja("user", pregunta);
+    const btn = document.getElementById("btn-send");
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${getApi()}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pregunta, modo: "ciudadano" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error en servidor");
+      agregarBurbuja("bot", data.respuesta, data.fuentes);
+      if (vozActiva) leerEnVozAlta(data.respuesta);
+    } catch (err) {
+      agregarBurbuja("bot", "⚠️ No pude conectarme con el servidor en " + getApi() + ". Verifica que uvicorn esté corriendo.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // -------------------- CARGA DE DATOS Y GRAFO INTERACTIVO --------------------
+  async function inicializarDatos() {
+    const dot = document.getElementById("conn-dot");
+    try {
+      const [resMet, resGrafo] = await Promise.all([
+        fetch(`${getApi()}/metricas-portal`),
+        fetch(`${getApi()}/grafo-completo`)
+      ]);
+      if (!resMet.ok) throw new Error("Backend offline");
+
+      const met = await resMet.json();
+      dot.classList.remove("offline");
+
+      document.getElementById("ws-count").textContent = `${met.total_paginas} páginas indexadas`;
+      document.getElementById("ws-top-list").innerHTML = (met.top_authorities || []).slice(0, 3).map(n => `
+        <div class="ws-item" onclick="consultaRapida('Explícame en detalle qué es y qué requisitos pide: ${n.titulo.replace(/'/g, '')}')">
+          <div class="ws-left">
+            <div class="ws-icon">📄</div>
+            <div class="ws-title">${n.titulo}</div>
+          </div>
+          <div class="ws-badge">Auth: ${n.auth_score}</div>
+        </div>
+      `).join("");
+
+      document.getElementById("kpi-nodos").textContent = met.total_paginas;
+      document.getElementById("kpi-aristas").textContent = met.total_aristas;
+      document.getElementById("kpi-salud").textContent = met.indice_salud + "%";
+      document.getElementById("kpi-rotos").textContent = met.enlaces_caidos;
+
+      document.getElementById("rank-auths").innerHTML = (met.top_authorities || []).map(n => `
+        <div class="rank-item">
+          <a href="${n.url}" target="_blank">${n.titulo}</a>
+          <div class="rank-meta">Authority: <strong>${n.auth_score}</strong> • Entradas: ${n.grado_entrada} • HTTP ${n.status_http}</div>
+        </div>
+      `).join("");
+
+      document.getElementById("rank-hubs").innerHTML = (met.top_hubs || []).map(n => `
+        <div class="rank-item hub">
+          <a href="${n.url}" target="_blank">${n.titulo}</a>
+          <div class="rank-meta">Hub: <strong>${n.hub_score}</strong> • Salidas: ${n.grado_salida} • HTTP ${n.status_http}</div>
+        </div>
+      `).join("");
+
+      if (resGrafo.ok) {
+        datosGrafoGlobal = await resGrafo.json();
+      }
+    } catch (e) {
+      dot.classList.add("offline");
+      document.getElementById("ws-count").textContent = "Sin conexión al backend";
+    }
+  }
+
+  function dibujarGrafo(nodosFiltrados = null) {
+    const container = document.getElementById("network-canvas");
+    const listaNodos = nodosFiltrados || datosGrafoGlobal.nodos || [];
+    if (!listaNodos.length) return;
+
+    const idsActivos = new Set(listaNodos.map(n => n.id));
+
+    const nodes = new vis.DataSet(listaNodos.map(n => {
+      let color = "#3b82f6";
+      if (n.caido) color = "#ef4444";
+      else if (n.hub_score >= 0.25 && n.hub_score >= n.auth_score) color = "#7c3aed";
+      else if (n.auth_score >= 0.25) color = "#f59e0b";
+
+      const tamano = 14 + Math.max(n.auth_score, n.hub_score) * 24;
+      const etiquetaCorta = n.titulo.length > 26 ? n.titulo.slice(0, 24) + "..." : n.titulo;
+
+      return {
+        id: n.id,
+        label: etiquetaCorta,
+        title: `${n.titulo}\nURL: ${n.url}\nAuthority: ${n.auth_score} | Hub: ${n.hub_score}\nHTTP: ${n.status_http}`,
+        color: { background: color, border: "#ffffff", highlight: { background: "#10b981", border: "#042f2e" } },
+        size: tamano,
+        font: { size: 11, color: "#1e1b4b", face: "Plus Jakarta Sans" }
+      };
+    }));
+
+    const edges = new vis.DataSet(
+      (datosGrafoGlobal.aristas || [])
+        .filter(e => idsActivos.has(e.source) && idsActivos.has(e.target))
+        .map(e => ({
+          from: e.source,
+          to: e.target,
+          arrows: "to",
+          color: { color: "#cbd5e1", highlight: "#7c3aed" }
+        }))
+    );
+
+    const options = {
+      physics: { stabilization: { iterations: 120 }, barnesHut: { gravitationalConstant: -2600, springLength: 130 } },
+      interaction: { hover: true, tooltipDelay: 120 }
+    };
+
+    networkInstance = new vis.Network(container, { nodes, edges }, options);
+    networkInstance.on("doubleClick", (params) => {
+      if (params.nodes.length > 0) window.open(params.nodes[0], "_blank");
+    });
+  }
+
+  function filtrarGrafo(tipo, btnEl) {
+    filtroActual = tipo;
+    document.querySelectorAll(".filter-chip").forEach(b => b.classList.remove("active"));
+    if (btnEl) btnEl.classList.add("active");
+
+    const todos = datosGrafoGlobal.nodos || [];
+    if (tipo === "hubs") {
+      dibujarGrafo(todos.filter(n => n.hub_score > 0.05));
+    } else if (tipo === "auths") {
+      dibujarGrafo(todos.filter(n => n.auth_score > 0.1));
+    } else {
+      dibujarGrafo(todos);
+    }
+  }
+
+  function buscarEnGrafo(texto) {
+    const q = texto.trim().toLowerCase();
+    const todos = datosGrafoGlobal.nodos || [];
+    if (!q) {
+      filtrarGrafo(filtroActual, null);
+      return;
+    }
+    dibujarGrafo(todos.filter(n => n.titulo.toLowerCase().includes(q) || n.url.toLowerCase().includes(q)));
+  }
+
+  window.onload = inicializarDatos;
+</script>
+</body>
+</html>

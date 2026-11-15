@@ -1,0 +1,17 @@
+# Entornos virtuales y caché de Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Claves secretas (NUNCA subir a GitHub)
+.env
+*.env
+
+# Archivos temporales de RStudio y sistema
+.Rhistory
+.RData
+.Rproj.user/
+.DS_Store
+Thumbs.db
